@@ -1,15 +1,12 @@
-import './_mockLocation';
+//import './_mockLocation';
 import React from 'react';
 import {Text, View, StyleSheet} from 'react-native';
 import Map from './components/Map';
-import useLocation from './hooks/useLocation';
 
-const Location = ({ isFocused }) => {
-    const [errorMsg] = useLocation(isFocused);
+const Location = () => {
 
     return (
        <View style={styles.container}>
-        {errorMsg ? <Text>Please enable location services</Text> : null}
          <Map />
        </View>
     );
