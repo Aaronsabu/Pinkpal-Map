@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Platform, SafeAreaView } from 'react-native';
-import MapView, { Marker, AnimatedRegion } from 'react-native-maps';
+import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE} from 'react-native-maps';
 import * as Location from 'expo-location';
 import PubNubReact from 'pubnub-react';
 
@@ -10,13 +10,13 @@ const LONGITUDE = 76.4088;
 const LATITUDE_DELTA = 0.01;
 const LONGITUDE_DELTA = 0.01;
 
-class Map extends React.Component {
+class Tracker extends React.Component {
   constructor(props) {
     super(props);
 
     this.pubnub = new PubNubReact({
-      publishKey: 'pub-c-b28f38b9-8df2-44ea-87c5-596690cf838a',
-      subscribeKey: 'sub-c-3abcb966-baff-11eb-99ea-662615fc053c',
+      publishKey: 'pub-c-b2f6c7f7-69d6-45ca-aa3b-f4baa8c3a987',
+      subscribeKey: 'sub-c-90ba6a68-c5f2-11eb-9292-4e51a9db8267',
     });
 
     this.state = {
@@ -24,8 +24,8 @@ class Map extends React.Component {
       longitude: LONGITUDE,
       errorMsg: '',
       coordinate: new AnimatedRegion({
-        latitude: LATITUDE,
-        longitude: LONGITUDE,
+        latitude: 9.4927,
+        longitude: 76.7084,
         latitudeDelta: LATITUDE_DELTA,
         longitudeDelta: LONGITUDE_DELTA,
       }),
@@ -37,74 +37,79 @@ class Map extends React.Component {
   // code to receive messages sent in a channel
   async componentDidMount() {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        this.setState({errorMsg: 'Permission to access location was denied'});
-        return [errorMsg];
-      } else {
-        this.subscribeToPubNub();
-      }
-0 
-    })();
-     
-    }
-
-  async subscribeToPubNub () {
-    this.pubnub.subscribe({
-      channels: ['location'],
-      withPresence: true,
-    });
-    this.pubnub.getMessage('location', msg => {
-      const { coordinate } = this.state;
-      const { latitude, longitude } = msg.message;
-      const newCoordinate = { latitude, longitude };
-
-      if (Platform.OS === 'android') {
-        if (this.marker) {
-          this.marker._component.animateMarkerToCoordinate(newCoordinate, 500);
-        }
-      } else {
-        coordinate.timing(newCoordinate).start();
-      }
-
-      this.setState({
-        latitude,
-        longitude,
-      });
-    });
+      await Location.requestForegroundPermissionsAsync();
+      {Location.hasServicesEnabledAsync ? this.watchLocation() :
+        this.setState({errorMsg: 'Permission to access location was denied'})}
+      } 
+    )();
   };
+
+  componentDidUpdate(prevState) {
+    if (this.props.latitude !== prevState.latitude) {
+      this.pubnub.publish({
+        message: {
+          latitude: this.state.latitude,
+          longitude: this.state.longitude
+        },
+        channel: "location"
+      });
+    }
+  }
+
+  async watchLocation() {
+     
+    this.watchID = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.BestForNavigation,
+        timeInterval: 3000,
+        distanceInterval: 10
+      },
+      position => {
+        const { latitude, longitude } = position.coords;
+        console.log("Position is" +position.coords.latitude);
+
+
+        this.setState({
+          latitude,
+          longitude
+        });
+        console.log(position);
+      }
+    )
+  };
+
+  componentWillUnmount() {
+    this.watchID.remove();
+  }
+
 
   getMapRegion = () => ({
     latitude: this.state.latitude,
     longitude: this.state.longitude,
     latitudeDelta: LATITUDE_DELTA,
-    longitudeDelta: LONGITUDE_DELTA,
+    longitudeDelta: LONGITUDE_DELTA
   });
 
   render() {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
         <View>
           <MapView
             style={styles.map}
+            provider={PROVIDER_GOOGLE}
             showUserLocation
             followUserLocation
             loadingEnabled
             //ref={c => (this.map = c)}
-            region={this.getMapRegion() }
+            region={this.getMapRegion()}
           >
             <Marker.Animated
-              ref={marker => {
-                this.marker = marker;
-              }}
-              coordinate={this.state.coordinate}
+              coordinate={this.state}
             />
           </MapView>
         </View>
-      </SafeAreaView>
     );
   }
-};
+}
 
 const styles = StyleSheet.create({
   map: {
@@ -113,6 +118,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Map;
-
-//this.state.latitude ? : null
+export default Tracker;
