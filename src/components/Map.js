@@ -5,8 +5,8 @@ import * as Location from 'expo-location';
 import PubNubReact from 'pubnub-react';
 
 
-const LATITUDE = 10.2315;
-const LONGITUDE = 76.4088;
+const LATITUDE = 9.4927;
+const LONGITUDE = 76.7084;
 const LATITUDE_DELTA = 0.01;
 const LONGITUDE_DELTA = 0.01;
 
@@ -44,24 +44,12 @@ class Tracker extends React.Component {
     )();
   };
 
-  componentDidUpdate(prevState) {
-    if (this.props.latitude !== prevState.latitude) {
-      this.pubnub.publish({
-        message: {
-          latitude: this.state.latitude,
-          longitude: this.state.longitude
-        },
-        channel: "location"
-      });
-    }
-  }
-
   async watchLocation() {
      
     this.watchID = await Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.BestForNavigation,
-        timeInterval: 3000,
+        timeInterval: 1000,
         distanceInterval: 10
       },
       position => {
@@ -78,6 +66,16 @@ class Tracker extends React.Component {
     )
   };
 
+  componentDidUpdate() {
+      this.pubnub.publish({
+        message: {
+          latitude: this.state.latitude,
+          longitude: this.state.longitude
+        },
+        channel: "location"
+      });
+  }
+
   componentWillUnmount() {
     this.watchID.remove();
   }
@@ -92,6 +90,7 @@ class Tracker extends React.Component {
 
   render() {
     return (
+      //<SafeAreaView style={{ flex: 1 }}>
         <View>
           <MapView
             style={styles.map}
@@ -99,7 +98,7 @@ class Tracker extends React.Component {
             showUserLocation
             followUserLocation
             loadingEnabled
-            //ref={c => (this.map = c)}
+            ref={c => (this.mapView = c)}
             region={this.getMapRegion()}
           >
             <Marker.Animated
@@ -107,6 +106,7 @@ class Tracker extends React.Component {
             />
           </MapView>
         </View>
+      //</SafeAreaView>
     );
   }
 }
