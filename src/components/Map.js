@@ -10,13 +10,13 @@ const LONGITUDE = 76.7084;
 const LATITUDE_DELTA = 0.01;
 const LONGITUDE_DELTA = 0.01;
 
-class Tracker extends React.Component {
+class Map extends React.Component {
   constructor(props) {
     super(props);
 
     this.pubnub = new PubNubReact({
-      publishKey: 'pub-c-b2f6c7f7-69d6-45ca-aa3b-f4baa8c3a987',
-      subscribeKey: 'sub-c-90ba6a68-c5f2-11eb-9292-4e51a9db8267',
+      publishKey: 'pub-c-7c6559aa-4b15-443a-8042-05dab8d19c07',
+      subscribeKey: 'sub-c-5d94ee5c-c23b-11eb-95c9-dee3de5eea22',
     });
 
     this.state = {
@@ -44,12 +44,24 @@ class Tracker extends React.Component {
     )();
   };
 
+  componentDidUpdate(prevState) {
+    if (this.props.latitude !== prevState.latitude) {
+      this.pubnub.publish({
+        message: {
+          latitude: this.state.latitude,
+          longitude: this.state.longitude
+        },
+        channel: "location"
+      });
+    }
+  }
+
   async watchLocation() {
      
     this.watchID = await Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.BestForNavigation,
-        timeInterval: 1000,
+        timeInterval: 5000,
         distanceInterval: 10
       },
       position => {
@@ -65,16 +77,6 @@ class Tracker extends React.Component {
       }
     )
   };
-
-  componentDidUpdate() {
-      this.pubnub.publish({
-        message: {
-          latitude: this.state.latitude,
-          longitude: this.state.longitude
-        },
-        channel: "location"
-      });
-  }
 
   componentWillUnmount() {
     this.watchID.remove();
@@ -98,7 +100,7 @@ class Tracker extends React.Component {
             showUserLocation
             followUserLocation
             loadingEnabled
-            ref={c => (this.mapView = c)}
+            //ref={c => (this.map = c)}
             region={this.getMapRegion()}
           >
             <Marker.Animated
@@ -118,4 +120,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Tracker;
+export default Map
